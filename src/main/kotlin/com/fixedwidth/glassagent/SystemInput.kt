@@ -29,6 +29,7 @@ class SystemInput : Input {
     private fun inject(ev: InputEvent) { injectMethod.invoke(im, ev, modeWait) }
 
     override fun pointer(path: List<Pt>, button: String) {
+        // `button` is reserved for future tap-vs-secondary mapping; v1 injects touch only.
         if (path.isEmpty()) return
         val down = SystemClock.uptimeMillis()
         val first = path.first()
