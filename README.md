@@ -14,6 +14,14 @@ line-delimited JSON protocol; the host reaches it via `adb forward tcp:<port> lo
 - **Input injection** — pointer gestures (tap, swipe), key events, and text entry via
   Android's `InputManager` platform API, available to a shell-uid `app_process` process.
 
+## Download
+
+Prebuilt `glass-agent.jar` artifacts are published on the
+[Releases](https://github.com/fixed-width/glass-android-agent/releases) page — download the
+jar (and verify it against the accompanying `glass-agent.jar.sha256`) and skip the build
+toolchain entirely. Each release is built by CI from the matching tag. Build from source
+(below) only if you want to modify the agent.
+
 ## Building
 
 **Prerequisites:**
