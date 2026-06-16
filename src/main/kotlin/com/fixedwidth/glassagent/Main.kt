@@ -7,6 +7,21 @@ import java.io.InputStreamReader
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
+        if (args.contains("--selftest-clipboard")) {
+            val cb = SystemClipboard()
+            cb.set("glass-roundtrip-✓-héllo")
+            val got = cb.get()
+            System.err.println("clipboard selftest: set→get => \"$got\"")
+            System.exit(if (got == "glass-roundtrip-✓-héllo") 0 else 1)
+        }
+
+        if (args.contains("--clipboard-get")) {
+            val cb = SystemClipboard()
+            val got = cb.get()
+            System.err.println("clipboard-get: \"$got\"")
+            return
+        }
+
         val socketName = "glass-agent"
         val server = LocalServerSocket(socketName)
         System.err.println("glass-agent: listening on localabstract:$socketName")
