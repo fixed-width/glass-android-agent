@@ -16,6 +16,7 @@ private class RecordingInput : Input {
     override fun pointer(path: List<Pt>, button: String) { calls += "pointer:${path.size}:$button" }
     override fun key(chord: String) { calls += "key:$chord" }
     override fun text(s: String) { calls += "text:$s" }
+    override fun gesture(paths: List<List<Pt>>) { calls += "gesture:${paths.size}" }
 }
 
 class ServerTest {

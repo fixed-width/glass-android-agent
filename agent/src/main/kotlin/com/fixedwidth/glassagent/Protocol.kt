@@ -14,6 +14,7 @@ sealed class Request {
     data class Pointer(override val id: Int, val path: List<Pt>, val button: String) : Request()
     data class Key(override val id: Int, val chord: String) : Request()
     data class Text(override val id: Int, val text: String) : Request()
+    data class Gesture(override val id: Int, val paths: List<List<Pt>>) : Request()
     data class Unknown(override val id: Int, val op: String) : Request()
     /**
      * A line that isn't valid JSON, has no usable id, or has a malformed field. `id = -1`
@@ -54,6 +55,17 @@ object Protocol {
                         Pt(p.getInt("x"), p.getInt("y"), p.optLong("t_ms", 0))
                     }
                     Request.Pointer(id, path, o.optString("button", "left"))
+                }
+                "gesture" -> {
+                    val outer = o.optJSONArray("pointers") ?: org.json.JSONArray()
+                    val paths = (0 until outer.length()).map { i ->
+                        val inner = outer.getJSONArray(i)
+                        (0 until inner.length()).map { j ->
+                            val p = inner.getJSONObject(j)
+                            Pt(p.getInt("x"), p.getInt("y"), p.optLong("t_ms", 0))
+                        }
+                    }
+                    Request.Gesture(id, paths)
                 }
                 else -> Request.Unknown(id, op)
             }

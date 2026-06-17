@@ -62,4 +62,15 @@ class ProtocolTest {
             Protocol.parse("""{"id":4,"op":"pointer","gesture":[{"x":1}]}""")
         )
     }
+    @Test fun parses_gesture_into_aligned_paths() {
+        val line = """{"id":7,"op":"gesture","pointers":[
+            [{"x":1,"y":2,"t_ms":0},{"x":3,"y":2,"t_ms":50}],
+            [{"x":9,"y":9,"t_ms":0},{"x":9,"y":9,"t_ms":50}]]}"""
+        val req = Protocol.parse(line)
+        assertTrue(req is Request.Gesture)
+        req as Request.Gesture
+        assertEquals(2, req.paths.size)
+        assertEquals(Pt(1, 2, 0), req.paths[0][0])
+        assertEquals(Pt(3, 2, 50), req.paths[0][1])
+    }
 }

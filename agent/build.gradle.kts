@@ -20,6 +20,10 @@ dependencies {
     testImplementation(kotlin("test"))
     // org.json for JVM tests (android.jar is not on the test runtime classpath).
     testImplementation("org.json:json:20240303")
+    // Android framework constants (e.g. MotionEvent.ACTION_*) are compile-time ints; add
+    // android.jar to the test compile classpath so tests can import Android types directly.
+    // It is NOT on the test runtime classpath — no Android classes are instantiated in tests.
+    testCompileOnly(files(androidJar))
 }
 
 kotlin { jvmToolchain(17) }
