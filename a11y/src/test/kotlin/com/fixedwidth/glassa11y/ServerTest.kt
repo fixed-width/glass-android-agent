@@ -58,4 +58,11 @@ class ServerTest {
         assertTrue(!resps[0].getBoolean("ok"))
         assertTrue(resps[0].getString("error").contains("ref"))
     }
+
+    @Test fun unknown_op_errors() {
+        val resps = run("""{"id":1,"op":"frobnicate"}""" + "\n",
+            source = { null }, sink = { _, _, _ -> })
+        assertTrue(!resps[0].getBoolean("ok"))
+        assertTrue(resps[0].getString("error").contains("unknown op"))
+    }
 }

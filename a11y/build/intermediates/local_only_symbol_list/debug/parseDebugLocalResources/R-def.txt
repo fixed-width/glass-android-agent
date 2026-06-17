@@ -1,5 +1,0 @@
-R_DEF: Internal format may change without notice
-local
-string a11y_service_label
-string app_name
-xml a11y_service_config

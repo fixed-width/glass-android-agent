@@ -16,7 +16,15 @@ class GlassA11yService : AccessibilityService() {
     }
 
     private fun acceptLoop() {
-        val srv = LocalServerSocket("glass-a11y").also { server = it }
+        // The abstract socket name can already be bound if the service is rapidly restarted;
+        // surface that instead of letting the daemon thread die silently with the socket closed.
+        val srv = try {
+            LocalServerSocket("glass-a11y")
+        } catch (e: Exception) {
+            System.err.println("glass-a11y: failed to open socket: ${e.message}")
+            return
+        }
+        server = srv
         System.err.println("glass-a11y: listening on localabstract:glass-a11y")
         // Both `tree` and `action` target the current active window; a tree/action pair
         // from the host runs back-to-back against the same window.
@@ -33,6 +41,7 @@ class GlassA11yService : AccessibilityService() {
             }
         }
         runCatching { srv.close() }
+        server = null
     }
 
     /** ActionSink that re-finds the live node (by class + screen bounds) and performs the action. */

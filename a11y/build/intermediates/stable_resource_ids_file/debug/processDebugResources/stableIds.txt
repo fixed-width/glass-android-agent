@@ -1,3 +1,0 @@
-com.fixedwidth.glassa11y:string/app_name = 0x7f010001
-com.fixedwidth.glassa11y:xml/a11y_service_config = 0x7f020000
-com.fixedwidth.glassa11y:string/a11y_service_label = 0x7f010000
