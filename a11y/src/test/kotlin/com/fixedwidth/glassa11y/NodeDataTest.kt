@@ -1,8 +1,10 @@
 package com.fixedwidth.glassa11y
 
+import android.view.accessibility.AccessibilityNodeInfo
 import org.json.JSONObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class NodeDataTest {
@@ -27,6 +29,13 @@ class NodeDataTest {
         assertEquals("android.widget.Button", kids.getJSONObject(1).getString("class"))
         assertTrue(kids.getJSONObject(1).getBoolean("clickable"))
         assertEquals(10, kids.getJSONObject(1).getJSONObject("bounds").getInt("w"))
+    }
+
+    @Test fun clickable_reflects_action_click_not_just_the_flag() {
+        // Compose exposes a button's click via ACTION_CLICK, with isClickable() == false.
+        assertTrue(isClickableNode(false, listOf(AccessibilityNodeInfo.ACTION_CLICK)))
+        assertTrue(isClickableNode(true, emptyList()))
+        assertFalse(isClickableNode(false, listOf(AccessibilityNodeInfo.ACTION_FOCUS)))
     }
 
     @Test fun finds_node_by_preorder_ref() {
