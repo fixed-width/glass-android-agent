@@ -1,0 +1,53 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:2:1-19:12
+INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:2:1-19:12
+INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:2:1-19:12
+INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:2:1-19:12
+	package
+		INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml
+	android:versionName
+		INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml
+	android:versionCode
+		INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:2:11-69
+application
+ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:3:5-18:19
+INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:3:5-18:19
+	android:extractNativeLibs
+		INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml
+	android:label
+		ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:5:9-41
+	android:allowBackup
+		ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:4:9-36
+service#com.fixedwidth.glassa11y.GlassA11yService
+ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:6:9-17:19
+	android:label
+		ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:9:13-55
+	android:exported
+		ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:8:13-36
+	android:permission
+		ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:10:13-79
+	android:name
+		ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:7:13-45
+intent-filter#action:name:android.accessibilityservice.AccessibilityService
+ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:11:13-13:29
+action#android.accessibilityservice.AccessibilityService
+ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:12:17-92
+	android:name
+		ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:12:25-89
+meta-data#android.accessibilityservice
+ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:14:13-16:63
+	android:resource
+		ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:16:17-60
+	android:name
+		ADDED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml:15:17-60
+uses-sdk
+INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml
+INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/mpd/git-sources/fw/glass-android-agent/a11y/src/main/AndroidManifest.xml
