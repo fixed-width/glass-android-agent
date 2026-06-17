@@ -16,12 +16,20 @@ fun adapt(node: AccessibilityNodeInfo?): NodeData? {
         contentDescription = node.contentDescription?.toString()?.ifEmpty { null },
         bounds = Bounds(r.left, r.top, r.width(), r.height()),
         editable = node.isEditable,
-        clickable = node.isClickable,
+        clickable = isClickableNode(node.isClickable, node.actionList.map { it.id }),
         enabled = node.isEnabled,
         scrollable = node.isScrollable,
         children = kids,
     )
 }
+
+/**
+ * Whether to report a node as clickable: its `isClickable` flag, OR an `ACTION_CLICK` in its
+ * action list. Jetpack Compose exposes a button's click via the action, not the flag — so
+ * `isClickable` is false for Compose buttons even though they are clickable.
+ */
+fun isClickableNode(isClickable: Boolean, actionIds: List<Int>): Boolean =
+    isClickable || actionIds.contains(AccessibilityNodeInfo.ACTION_CLICK)
 
 /** Perform a node action ("click" | "set_text") on a live node; throws on refusal/unknown. */
 fun performOn(node: AccessibilityNodeInfo, action: String, text: String?) {
