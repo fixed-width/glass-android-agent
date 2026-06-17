@@ -1,26 +1,30 @@
 # glass-android-agent
 
-A companion on-device agent for [glass](https://github.com/fixed-width/glass), the
-developer automation tool. The agent runs under `app_process` on an Android device or
-emulator and exposes a `localabstract` Unix socket that glass drives over ADB port
-forwarding.
+On-device companions for [glass](https://github.com/fixed-width/glass), the developer
+automation tool. They extend what glass can do on an Android device/emulator beyond what
+plain `adb` allows. Both are **optional** — glass works without them and falls back to its
+`adb`-only paths — and glass installs, launches, connects, and tears each one down for you.
 
-## What it does
+This repo ships **two** components (a Gradle multi-module build):
 
-The agent listens on a `localabstract` Unix-domain socket (`glass-agent`) and speaks a
-line-delimited JSON protocol; the host reaches it via `adb forward tcp:<port> localabstract:glass-agent`. It provides:
+| Module | Artifact | Runs as | Gives glass |
+|--------|----------|---------|-------------|
+| `:agent` | `glass-agent.jar` | `app_process` (shell uid) | clipboard get/set + high-fidelity input (real `MotionEvent`/`KeyEvent`, faithful Unicode) |
+| `:a11y`  | `glass-a11y.apk`  | an installed `AccessibilityService` | a Compose-rich accessibility tree + high-fidelity `set_value` (`ACTION_SET_TEXT`) |
 
-- **Clipboard access** — get and set the system clipboard across processes.
-- **Input injection** — pointer gestures (tap, swipe), key events, and text entry via
-  Android's `InputManager` platform API, available to a shell-uid `app_process` process.
+(`:fixture-compose` is a tiny Compose app used only by the on-device tests; it is not a
+released artifact.)
+
+Each speaks a line-delimited JSON protocol over a `localabstract` Unix socket that glass
+reaches via `adb forward tcp:<port> localabstract:<name>`.
 
 ## Download
 
-Prebuilt `glass-agent.jar` artifacts are published on the
+Prebuilt artifacts are published on the
 [Releases](https://github.com/fixed-width/glass-android-agent/releases) page — download the
-jar (and verify it against the accompanying `glass-agent.jar.sha256`) and skip the build
-toolchain entirely. Each release is built by CI from the matching tag. Build from source
-(below) only if you want to modify the agent.
+`glass-agent.jar` and/or `glass-a11y.apk` (and verify against the accompanying `.sha256`) and
+skip the build toolchain entirely. Each release is built by CI from the matching tag. Build
+from source (below) only to modify a component.
 
 ## Building
 
@@ -29,91 +33,103 @@ toolchain entirely. Each release is built by CI from the matching tag. Build fro
 - JDK 17 or later (the Gradle Kotlin toolchain requires a full JDK, not just a JRE).
 - Android SDK with `platforms;android-34` and `build-tools;34.0.0` installed.
 
-**SDK location** — set one of the standard env vars before building:
+Set the SDK location via the standard env var, then build the module you want:
 
 ```bash
-export ANDROID_SDK_ROOT=/path/to/android-sdk   # or ANDROID_HOME
-./gradlew dex
+export ANDROID_SDK_ROOT=/path/to/android-sdk    # or ANDROID_HOME
+
+./gradlew :agent:dex              # -> agent/build/glass-agent.jar (a dexed jar)
+./gradlew :a11y:assembleDebug     # -> a11y/build/outputs/apk/debug/a11y-debug.apk
 ```
 
-Alternatively, pass it on the command line:
+The APK is debug-signed (the auto-generated debug key) — `adb install` accepts it, and this is
+emulator dev tooling, so there is no release keystore to manage.
+
+## The agent (`:agent`) — clipboard + input
+
+Runs under `app_process` as the shell uid and listens on `localabstract:glass-agent`. It
+provides:
+
+- **Clipboard access** — get/set the system clipboard across processes.
+- **Input injection** — pointer gestures (tap, swipe), key events, and text entry via Android's
+  `InputManager`, available to a shell-uid process (faithful Unicode, unlike `adb shell input`).
+
+glass runs it for you; to drive it by hand for testing:
 
 ```bash
-./gradlew dex -PandroidSdkRoot=/path/to/android-sdk
-```
-
-Output: `build/glass-agent.jar` — a jar containing `classes.dex`, ready to push and run.
-
-## Deploy and run
-
-```bash
-adb push build/glass-agent.jar /data/local/tmp/glass-agent.jar
+adb push agent/build/glass-agent.jar /data/local/tmp/glass-agent.jar
 adb shell "CLASSPATH=/data/local/tmp/glass-agent.jar app_process / com.fixedwidth.glassagent.Main"
+adb forward tcp:0 localabstract:glass-agent     # then connect with nc 127.0.0.1 <port>
 ```
 
-The agent prints `glass-agent: listening on localabstract:glass-agent` to stderr when ready.
+### Agent protocol
 
-Forward the socket from the host (use tcp:0 to let the OS pick a free port):
-
-```bash
-adb forward tcp:0 localabstract:glass-agent
-PORT=$(adb forward --list | awk '/glass-agent/ {sub(/tcp:/,"",$2); print $2; exit}')
-```
-
-Connections are sequential — each client is served to completion before the next is
-accepted. Connect with any line-oriented TCP client (e.g. `nc 127.0.0.1 $PORT`).
-
-## Protocol
-
-Line-delimited JSON. On connect the agent sends a hello banner:
-
-```json
-{"hello":{"proto":1}}
-```
-
-All subsequent requests are JSON objects sent by the client, one per line, and each
-receives a one-line JSON response:
+Line-delimited JSON. On connect the agent sends `{"hello":{"proto":1}}`, then answers one
+response line per request line:
 
 | `op`            | Required fields                                   | Response fields          |
 |-----------------|---------------------------------------------------|--------------------------|
 | `ping`          | `id`                                              | `id`, `ok:true`          |
 | `clipboard_get` | `id`                                              | `id`, `ok:true`, `text`  |
 | `clipboard_set` | `id`, `text`                                      | `id`, `ok:true`          |
-| `pointer`       | `id`, `gesture` (array of `{x,y,t_ms}`), `button` (accepted, currently ignored — reserved for future use) | `id`, `ok:true`          |
-| `key`           | `id`, `chord` (`"+"‑joined modifier+key string, e.g. `ctrl+a`, `shift+tab`, `enter`, `f5`) | `id`, `ok:true`          |
+| `pointer`       | `id`, `gesture` (array of `{x,y,t_ms}`), `button` (accepted, reserved) | `id`, `ok:true` |
+| `key`           | `id`, `chord` (`"+"`-joined, e.g. `ctrl+a`, `shift+tab`, `enter`, `f5`) | `id`, `ok:true` |
 | `text`          | `id`, `text`                                      | `id`, `ok:true`          |
 
-Every request receives exactly one response line; the host correlates responses to
-requests by `id`. On a handler error or unknown op, the agent replies
-`{"id":<id>,"ok":false,"error":"..."}` and **keeps the connection open** — the session
-continues normally. If a line cannot be parsed at all (malformed JSON or missing `id`),
-the agent replies with `{"id":-1,"ok":false,"error":"malformed request"}`; a host should
-treat an `id` it did not send (e.g. `-1`) as a protocol error and reconnect.
+On a handler error or unknown op, the agent replies `{"id":<id>,"ok":false,"error":"..."}` and
+keeps the connection open. An unparseable line (bad JSON / missing `id`) gets
+`{"id":-1,"ok":false,"error":"malformed request"}`; a host should treat an `id` it did not send
+as a protocol error and reconnect.
 
-### Example session
+## The a11y service (`:a11y`) — accessibility tree + `set_value`
+
+An installed `AccessibilityService`. Reading the live `AccessibilityNodeInfo` tree surfaces
+**Jetpack Compose semantics** that `uiautomator` tends to flatten, and `ACTION_SET_TEXT` sets
+editable fields directly. Because an `AccessibilityService` is system-bound, it must be an
+*installed* APK and enabled in secure settings — glass does both (`pm install` +
+`settings put secure enabled_accessibility_services …`) and restores the device's prior state
+on teardown.
+
+It listens on `localabstract:glass-a11y` and sends the same `{"hello":{"proto":1}}` banner.
+
+| `op`     | Required fields                                    | Response fields                       |
+|----------|----------------------------------------------------|---------------------------------------|
+| `ping`   | `id`                                               | `id`, `ok:true`                       |
+| `tree`   | `id`, `package` (serves the active window regardless) | `id`, `ok:true`, `tree` (a node object) |
+| `action` | `id`, `ref`, `action` (`"set_text"` \| `"click"`), `text` (for `set_text`) | `id`, `ok:true` |
+
+A tree **node** is `{"ref":N, "class":…, "text"?:…, "desc"?:…, "bounds":{"x","y","w","h"}, "editable":bool, "clickable":bool, "enabled":bool, "scrollable":bool, "children"?:[…]}`. `ref`
+is a pre-order index (root = 0) the host uses to address a node in an `action`.
+
+**Scope note:** glass uses this service for the **tree** and **`set_text`** only. It also
+implements `click` (`ACTION_CLICK`), but glass does **not** route element clicks through it —
+`ACTION_CLICK` is unreliable on Compose (returns success but no-ops), so glass clicks by
+coordinate tap on the node's bounds instead.
+
+### Example (a11y) session
 
 ```
 → connect
 ← {"hello":{"proto":1}}
-→ {"id":1,"op":"ping"}
-← {"id":1,"ok":true}
-→ {"id":2,"op":"clipboard_set","text":"hello"}
+→ {"id":1,"op":"tree","package":"com.example.app"}
+← {"id":1,"ok":true,"tree":{"ref":0,"class":"android.widget.FrameLayout","bounds":{...},"children":[...]}}
+→ {"id":2,"op":"action","ref":3,"action":"set_text","text":"hello"}
 ← {"id":2,"ok":true}
-→ {"id":3,"op":"clipboard_get"}
-← {"id":3,"ok":true,"text":"hello"}
-→ {"id":4,"op":"pointer","gesture":[{"x":540,"y":960,"t_ms":0}],"button":"left"}
-← {"id":4,"ok":true}
-→ {"id":5,"op":"text","text":"abc"}
-← {"id":5,"ok":true}
-→ {"id":6,"op":"key","chord":"ctrl+a"}
-← {"id":6,"ok":true}
 ```
 
 ## Integration with glass
 
-glass locates the agent jar via the `GLASS_ANDROID_AGENT_JAR` environment variable,
-which should point to `build/glass-agent.jar`. glass handles push, launch, and
-`adb forward` automatically before handing off to the MCP tools.
+glass discovers each component by env var and handles install/launch/`adb forward`/teardown
+automatically:
+
+| Env var | Points at | Enables | Disable with |
+|---------|-----------|---------|--------------|
+| `GLASS_ANDROID_AGENT_JAR` | `glass-agent.jar` | clipboard + high-fidelity input | `GLASS_ANDROID_AGENT=off` |
+| `GLASS_ANDROID_A11Y_APK`  | `glass-a11y.apk`  | Compose-rich a11y tree + `set_value` | `GLASS_ANDROID_A11Y=off` |
+
+Run `GLASS_BACKEND=android glass-mcp doctor --deep` to check both (it installs, enables, and
+pings each, then tears them down). See the Android section of glass's host guides for the full
+setup.
 
 ## License
 
