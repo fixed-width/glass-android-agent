@@ -12,6 +12,7 @@ interface Input {
     fun pointer(path: List<Pt>, button: String)
     fun key(chord: String)
     fun text(s: String)
+    fun gesture(paths: List<List<Pt>>)
 }
 
 class Server(private val clipboard: Clipboard, private val input: Input) {
@@ -33,6 +34,7 @@ class Server(private val clipboard: Clipboard, private val input: Input) {
             is Request.ClipboardGet -> Response.okText(req.id, clipboard.get())
             is Request.ClipboardSet -> { clipboard.set(req.text); Response.ok(req.id) }
             is Request.Pointer -> { input.pointer(req.path, req.button); Response.ok(req.id) }
+            is Request.Gesture -> { input.gesture(req.paths); Response.ok(req.id) }
             is Request.Key -> { input.key(req.chord); Response.ok(req.id) }
             is Request.Text -> { input.text(req.text); Response.ok(req.id) }
             is Request.Unknown -> Response.error(req.id, "unknown op: ${req.op}")
