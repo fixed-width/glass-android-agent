@@ -33,5 +33,5 @@ jobs:
           yes | "$sdk" --licenses > /dev/null 2>&1 || true
           "$sdk" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Build, test, and dex
-        run: ./gradlew test dex
+      - name: Build, test, dex (agent) + assemble (a11y, fixture)
+        run: ./gradlew :agent:test :agent:dex :a11y:testDebugUnitTest :a11y:assembleDebug :fixture-compose:assembleDebug
