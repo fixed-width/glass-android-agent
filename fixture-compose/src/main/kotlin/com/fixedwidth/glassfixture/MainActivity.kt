@@ -41,15 +41,19 @@ class MainActivity : ComponentActivity() {
                 Box(
                     Modifier
                         .size(200.dp)
-                        .graphicsLayer { scaleX = scale; scaleY = scale }
-                        .background(Color(0xFF3366CC))
-                        .semantics { contentDescription = "PinchBox" }
+                        // Detect the pinch in the box's UNSCALED coordinate space, then apply the
+                        // visual scale. graphicsLayer must come AFTER pointerInput: if it scales
+                        // the gesture space, detectTransformGestures' touch-slop is measured in the
+                        // scaled space and a pinch-in while zoomed never clears slop.
                         .pointerInput(Unit) {
                             detectTransformGestures { _, _, zoom, _ ->
                                 scale = (scale * zoom).coerceIn(0.5f, 5f)
                                 Log.i("fixture", "zoom: %.3f".format(scale))
                             }
-                        },
+                        }
+                        .graphicsLayer { scaleX = scale; scaleY = scale }
+                        .background(Color(0xFF3366CC))
+                        .semantics { contentDescription = "PinchBox" },
                 )
             }
         }
