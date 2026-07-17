@@ -19,6 +19,8 @@ fun adapt(node: AccessibilityNodeInfo?): NodeData? {
         clickable = isClickableNode(node.isClickable, node.actionList.map { it.id }),
         enabled = node.isEnabled,
         scrollable = node.isScrollable,
+        checkable = node.isCheckable,
+        checked = node.isChecked,
         children = kids,
     )
 }

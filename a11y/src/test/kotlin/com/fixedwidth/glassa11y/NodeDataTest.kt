@@ -10,9 +10,10 @@ import kotlin.test.assertTrue
 class NodeDataTest {
     private fun n(cls: String, text: String? = null, desc: String? = null,
                   editable: Boolean = false, clickable: Boolean = false,
+                  checkable: Boolean = false, checked: Boolean = false,
                   children: List<NodeData> = emptyList()) =
         NodeData("android.widget.$cls", text, desc,
-            Bounds(0, 0, 10, 10), editable, clickable, true, false, children)
+            Bounds(0, 0, 10, 10), editable, clickable, true, false, checkable, checked, children)
 
     @Test fun maps_node_fields_and_assigns_preorder_refs() {
         val tree = n("FrameLayout", children = listOf(
@@ -29,6 +30,15 @@ class NodeDataTest {
         assertEquals("android.widget.Button", kids.getJSONObject(1).getString("class"))
         assertTrue(kids.getJSONObject(1).getBoolean("clickable"))
         assertEquals(10, kids.getJSONObject(1).getJSONObject("bounds").getInt("w"))
+    }
+
+    @Test fun emits_checkable_and_checked() {
+        val o = JSONObject(treeJson(n("CheckBox", checkable = true, checked = true)))
+        assertTrue(o.getBoolean("checkable"))
+        assertTrue(o.getBoolean("checked"))
+        val plain = JSONObject(treeJson(n("TextView")))
+        assertFalse(plain.getBoolean("checkable"))
+        assertFalse(plain.getBoolean("checked"))
     }
 
     @Test fun clickable_reflects_action_click_not_just_the_flag() {
