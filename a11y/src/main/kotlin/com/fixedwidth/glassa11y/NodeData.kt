@@ -19,6 +19,8 @@ data class NodeData(
     val clickable: Boolean,
     val enabled: Boolean,
     val scrollable: Boolean,
+    val checkable: Boolean,
+    val checked: Boolean,
     val children: List<NodeData>,
 )
 
@@ -37,6 +39,8 @@ private fun nodeJson(n: NodeData, next: IntArray): JSONObject {
     o.put("clickable", n.clickable)
     o.put("enabled", n.enabled)
     o.put("scrollable", n.scrollable)
+    o.put("checkable", n.checkable)
+    o.put("checked", n.checked)
     if (n.children.isNotEmpty()) {
         val arr = JSONArray()
         n.children.forEach { arr.put(nodeJson(it, next)) }
