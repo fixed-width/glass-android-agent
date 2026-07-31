@@ -21,6 +21,8 @@ data class NodeData(
     val scrollable: Boolean,
     val checkable: Boolean,
     val checked: Boolean,
+    val resourceId: String?,
+    val hint: String?,
     val children: List<NodeData>,
 )
 
@@ -41,6 +43,8 @@ private fun nodeJson(n: NodeData, next: IntArray): JSONObject {
     o.put("scrollable", n.scrollable)
     o.put("checkable", n.checkable)
     o.put("checked", n.checked)
+    n.resourceId?.let { o.put("resource_id", it) }
+    n.hint?.let { o.put("hint", it) }
     if (n.children.isNotEmpty()) {
         val arr = JSONArray()
         n.children.forEach { arr.put(nodeJson(it, next)) }

@@ -42,8 +42,9 @@ export ANDROID_SDK_ROOT=/path/to/android-sdk    # or ANDROID_HOME
 ./gradlew :a11y:assembleDebug     # -> a11y/build/outputs/apk/debug/a11y-debug.apk
 ```
 
-The APK is debug-signed (the auto-generated debug key) — `adb install` accepts it, and this is
-emulator dev tooling, so there is no release keystore to manage.
+The APK is debug-signed with a keystore committed at `a11y/debug.keystore` (the well-known debug
+credentials — alias `androiddebugkey`, password `android`) rather than one auto-generated per
+build, so every release carries the same signature and `adb install -r` can update in place.
 
 ## The agent (`:agent`) — clipboard + input
 

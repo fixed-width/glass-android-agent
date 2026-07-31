@@ -11,14 +11,27 @@ android {
         applicationId = "com.fixedwidth.glassa11y"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.5.0"
     }
 
-    // Debug-signed only — `adb install` accepts the auto-generated debug key, and this is
-    // emulator dev tooling, so there is no release keystore / CI secret to manage.
+    // Debug-signed only, still no secret to manage — the credentials are the well-known
+    // debug ones (alias androiddebugkey, password "android"). But the keystore is committed
+    // rather than auto-generated per build, so the signature is stable across releases and
+    // `adb install -r` can update in place instead of needing an uninstall first.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
     buildTypes {
-        getByName("debug") { isMinifyEnabled = false }
+        getByName("debug") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
     }
     // Match Java + Kotlin targets (AGP defaults Java to 8; Kotlin is 17 → mismatch errors).
     compileOptions {

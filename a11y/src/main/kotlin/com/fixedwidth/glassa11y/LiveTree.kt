@@ -1,6 +1,7 @@
 package com.fixedwidth.glassa11y
 
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
 
@@ -21,6 +22,13 @@ fun adapt(node: AccessibilityNodeInfo?): NodeData? {
         scrollable = node.isScrollable,
         checkable = node.isCheckable,
         checked = node.isChecked,
+        resourceId = node.viewIdResourceName?.ifEmpty { null },
+        // getHintText() is API 26; guarded so it's never called below minSdk 24's floor.
+        hint = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            hintFor(Build.VERSION.SDK_INT, node.hintText)
+        } else {
+            null
+        },
         children = kids,
     )
 }
@@ -32,6 +40,13 @@ fun adapt(node: AccessibilityNodeInfo?): NodeData? {
  */
 fun isClickableNode(isClickable: Boolean, actionIds: List<Int>): Boolean =
     isClickable || actionIds.contains(AccessibilityNodeInfo.ACTION_CLICK)
+
+/**
+ * The hint to report: `null` below API 26 (`getHintText()`'s floor) or when blank, the raw
+ * text otherwise. Pure so the version boundary is unit-testable without a live node.
+ */
+fun hintFor(sdkInt: Int, raw: CharSequence?): String? =
+    if (sdkInt >= Build.VERSION_CODES.O) raw?.toString()?.ifEmpty { null } else null
 
 /** Perform a node action ("click" | "set_text") on a live node; throws on refusal/unknown. */
 fun performOn(node: AccessibilityNodeInfo, action: String, text: String?) {
