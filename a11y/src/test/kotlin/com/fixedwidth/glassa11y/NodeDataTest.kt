@@ -11,9 +11,11 @@ class NodeDataTest {
     private fun n(cls: String, text: String? = null, desc: String? = null,
                   editable: Boolean = false, clickable: Boolean = false,
                   checkable: Boolean = false, checked: Boolean = false,
+                  resourceId: String? = null, hint: String? = null,
                   children: List<NodeData> = emptyList()) =
         NodeData("android.widget.$cls", text, desc,
-            Bounds(0, 0, 10, 10), editable, clickable, true, false, checkable, checked, children)
+            Bounds(0, 0, 10, 10), editable, clickable, true, false, checkable, checked,
+            resourceId, hint, children)
 
     @Test fun maps_node_fields_and_assigns_preorder_refs() {
         val tree = n("FrameLayout", children = listOf(
@@ -39,6 +41,20 @@ class NodeDataTest {
         val plain = JSONObject(treeJson(n("TextView")))
         assertFalse(plain.getBoolean("checkable"))
         assertFalse(plain.getBoolean("checked"))
+    }
+
+    @Test fun emits_resource_id_and_hint_when_present() {
+        val o = JSONObject(treeJson(n("EditText", resourceId = "com.x:id/email", hint = "Email")))
+        assertEquals("com.x:id/email", o.getString("resource_id"))
+        assertEquals("Email", o.getString("hint"))
+    }
+
+    @Test fun omits_resource_id_and_hint_when_absent() {
+        // An already-installed companion (or a pre-API-26 device for hint) sends neither key —
+        // absent must stay an omitted key, not a JSON null.
+        val o = JSONObject(treeJson(n("EditText")))
+        assertFalse(o.has("resource_id"))
+        assertFalse(o.has("hint"))
     }
 
     @Test fun clickable_reflects_action_click_not_just_the_flag() {

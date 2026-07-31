@@ -11,9 +11,9 @@ import kotlin.test.assertTrue
 class ServerTest {
     private val sampleTree = NodeData(
         "android.widget.FrameLayout", null, null, Bounds(0, 0, 100, 100),
-        false, false, true, false, false, false,
+        false, false, true, false, false, false, null, null,
         listOf(NodeData("android.widget.Button", null, "Save", Bounds(1, 2, 8, 8),
-            false, true, true, false, false, false, emptyList())),
+            false, true, true, false, false, false, null, null, emptyList())),
     )
 
     private fun run(input: String, source: TreeSource, sink: ActionSink): List<JSONObject> {

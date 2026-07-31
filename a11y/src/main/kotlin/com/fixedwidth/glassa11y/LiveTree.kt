@@ -1,6 +1,7 @@
 package com.fixedwidth.glassa11y
 
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
 
@@ -21,6 +22,13 @@ fun adapt(node: AccessibilityNodeInfo?): NodeData? {
         scrollable = node.isScrollable,
         checkable = node.isCheckable,
         checked = node.isChecked,
+        resourceId = node.viewIdResourceName?.ifEmpty { null },
+        // getHintText() is API 26; minSdk is 24, so older devices report no hint.
+        hint = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            node.hintText?.toString()?.ifEmpty { null }
+        } else {
+            null
+        },
         children = kids,
     )
 }
