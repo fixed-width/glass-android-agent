@@ -23,9 +23,9 @@ fun adapt(node: AccessibilityNodeInfo?): NodeData? {
         checkable = node.isCheckable,
         checked = node.isChecked,
         resourceId = node.viewIdResourceName?.ifEmpty { null },
-        // getHintText() is API 26; minSdk is 24, so older devices report no hint.
+        // getHintText() is API 26; guarded so it's never called below minSdk 24's floor.
         hint = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            node.hintText?.toString()?.ifEmpty { null }
+            hintFor(Build.VERSION.SDK_INT, node.hintText)
         } else {
             null
         },
@@ -40,6 +40,13 @@ fun adapt(node: AccessibilityNodeInfo?): NodeData? {
  */
 fun isClickableNode(isClickable: Boolean, actionIds: List<Int>): Boolean =
     isClickable || actionIds.contains(AccessibilityNodeInfo.ACTION_CLICK)
+
+/**
+ * The hint to report: `null` below API 26 (`getHintText()`'s floor) or when blank, the raw
+ * text otherwise. Pure so the version boundary is unit-testable without a live node.
+ */
+fun hintFor(sdkInt: Int, raw: CharSequence?): String? =
+    if (sdkInt >= Build.VERSION_CODES.O) raw?.toString()?.ifEmpty { null } else null
 
 /** Perform a node action ("click" | "set_text") on a live node; throws on refusal/unknown. */
 fun performOn(node: AccessibilityNodeInfo, action: String, text: String?) {

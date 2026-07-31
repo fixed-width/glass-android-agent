@@ -1,5 +1,6 @@
 package com.fixedwidth.glassa11y
 
+import android.os.Build
 import android.view.accessibility.AccessibilityNodeInfo
 import org.json.JSONObject
 import kotlin.test.Test
@@ -62,6 +63,22 @@ class NodeDataTest {
         assertTrue(isClickableNode(false, listOf(AccessibilityNodeInfo.ACTION_CLICK)))
         assertTrue(isClickableNode(true, emptyList()))
         assertFalse(isClickableNode(false, listOf(AccessibilityNodeInfo.ACTION_FOCUS)))
+    }
+
+    @Test fun hint_for_reports_hint_at_or_above_api_26() {
+        assertEquals("Email", hintFor(Build.VERSION_CODES.O, "Email"))
+        assertEquals("Email", hintFor(Build.VERSION_CODES.O + 1, "Email"))
+    }
+
+    @Test fun hint_for_reports_null_below_api_26() {
+        // getHintText() itself isn't called this low (adapt() guards it); this pins the boundary.
+        assertEquals(null, hintFor(Build.VERSION_CODES.O - 1, "Email"))
+    }
+
+    @Test fun hint_for_reports_null_when_blank_at_any_level() {
+        assertEquals(null, hintFor(Build.VERSION_CODES.O, null))
+        assertEquals(null, hintFor(Build.VERSION_CODES.O, ""))
+        assertEquals(null, hintFor(Build.VERSION_CODES.O - 1, null))
     }
 
     @Test fun finds_node_by_preorder_ref() {
