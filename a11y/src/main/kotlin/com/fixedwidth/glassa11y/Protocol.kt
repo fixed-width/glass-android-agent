@@ -13,11 +13,11 @@ sealed class Request {
 
 data class Response(
     val id: Int, val ok: Boolean,
-    val treeJson: String? = null, val error: String? = null,
+    val treeJson: String? = null, val error: String? = null, val pkg: String? = null,
 ) {
     companion object {
         fun ok(id: Int) = Response(id, true)
-        fun okTree(id: Int, treeJson: String) = Response(id, true, treeJson = treeJson)
+        fun okTree(id: Int, treeJson: String, pkg: String?) = Response(id, true, treeJson = treeJson, pkg = pkg)
         fun error(id: Int, msg: String) = Response(id, false, error = msg)
     }
 }
@@ -50,6 +50,9 @@ object Protocol {
         val o = JSONObject().put("id", r.id).put("ok", r.ok)
         // `tree` is a pre-serialized JSON object; nest it as a value, not a string.
         if (r.treeJson != null) o.put("tree", JSONObject(r.treeJson))
+        // Absent rather than null when the platform did not name the window: an older host ignores the
+        // key, and a newer one reads absent as "cannot say" rather than as a mismatch.
+        if (r.pkg != null) o.put("package", r.pkg)
         if (r.error != null) o.put("error", r.error)
         return o.toString()
     }

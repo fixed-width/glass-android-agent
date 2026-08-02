@@ -3,8 +3,11 @@ package com.fixedwidth.glassa11y
 import java.io.BufferedReader
 import java.io.Writer
 
-/** Resolve the active-window node tree for a package, or null if no such window is present. */
-fun interface TreeSource { fun tree(pkg: String): NodeData? }
+/** The active window's node tree and the package it belongs to; null when there is no active window. */
+data class ActiveWindow(val root: NodeData, val pkg: String?)
+
+/** Resolve the active window, or null if none is present. */
+fun interface TreeSource { fun tree(pkg: String): ActiveWindow? }
 
 /** Perform an action ("click" | "set_text") on a resolved node; throw on failure. */
 fun interface ActionSink { fun perform(node: NodeData, action: String, text: String?) }
@@ -26,12 +29,13 @@ class Server(private val source: TreeSource, private val sink: ActionSink) {
             when (req) {
                 is Request.Ping -> Response.ok(req.id)
                 is Request.Tree -> {
-                    val root = source.tree(req.pkg)
+                    val win = source.tree(req.pkg)
                         ?: return Response.error(req.id, "no window for package ${req.pkg}")
-                    Response.okTree(req.id, treeJson(root))
+                    Response.okTree(req.id, treeJson(win.root), win.pkg)
                 }
                 is Request.Action -> {
-                    val root = source.tree("") // package-agnostic re-walk; null when no active window
+                    // package-agnostic re-walk; null when no active window
+                    val root = source.tree("")?.root
                         ?: return Response.error(req.id, "no active window")
                     val node = nodeByRef(root, req.ref)
                         ?: return Response.error(req.id, "no node for ref ${req.ref}")

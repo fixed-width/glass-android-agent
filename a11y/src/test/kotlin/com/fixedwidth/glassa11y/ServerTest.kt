@@ -26,7 +26,7 @@ class ServerTest {
     @Test fun ping_then_tree_returns_the_tree() {
         val resps = run(
             """{"id":1,"op":"ping"}""" + "\n" + """{"id":2,"op":"tree","package":"com.x"}""" + "\n",
-            source = { pkg -> if (pkg == "com.x") sampleTree else null },
+            source = { pkg -> if (pkg == "com.x") ActiveWindow(sampleTree, "com.x") else null },
             sink = { _, _, _ -> },
         )
         assertTrue(resps[0].getBoolean("ok"))
@@ -44,7 +44,7 @@ class ServerTest {
     @Test fun action_dispatches_to_the_sink() {
         var got: Triple<NodeData, String, String?>? = null
         val resps = run("""{"id":1,"op":"action","ref":1,"action":"set_text","text":"hi"}""" + "\n",
-            source = { sampleTree },
+            source = { ActiveWindow(sampleTree, "com.x") },
             sink = { node, action, text -> got = Triple(node, action, text) })
         assertTrue(resps[0].getBoolean("ok"))
         assertEquals("Save", got!!.first.contentDescription) // ref 1 = the Button
@@ -54,7 +54,7 @@ class ServerTest {
 
     @Test fun action_on_bad_ref_errors() {
         val resps = run("""{"id":1,"op":"action","ref":99,"action":"click"}""" + "\n",
-            source = { sampleTree }, sink = { _, _, _ -> })
+            source = { ActiveWindow(sampleTree, "com.x") }, sink = { _, _, _ -> })
         assertTrue(!resps[0].getBoolean("ok"))
         assertTrue(resps[0].getString("error").contains("ref"))
     }
@@ -64,5 +64,21 @@ class ServerTest {
             source = { null }, sink = { _, _, _ -> })
         assertTrue(!resps[0].getBoolean("ok"))
         assertTrue(resps[0].getString("error").contains("unknown op"))
+    }
+
+    @Test fun tree_reply_names_the_window_it_answered_from() {
+        val resps = run("""{"id":1,"op":"tree","package":"com.x"}""" + "\n",
+            source = { ActiveWindow(sampleTree, "com.other") },
+            sink = { _, _, _ -> })
+        assertTrue(resps[0].getBoolean("ok"))
+        assertEquals("com.other", resps[0].getString("package"))
+    }
+
+    @Test fun a_window_with_no_package_omits_the_field() {
+        val resps = run("""{"id":1,"op":"tree","package":"com.x"}""" + "\n",
+            source = { ActiveWindow(sampleTree, null) },
+            sink = { _, _, _ -> })
+        assertTrue(resps[0].getBoolean("ok"))
+        assertTrue(!resps[0].has("package"))
     }
 }

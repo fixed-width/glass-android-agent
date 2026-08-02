@@ -28,7 +28,14 @@ class GlassA11yService : AccessibilityService() {
         System.err.println("glass-a11y: listening on localabstract:glass-a11y")
         // Both `tree` and `action` target the current active window; a tree/action pair
         // from the host runs back-to-back against the same window.
-        val source = TreeSource { _ -> adapt(rootInActiveWindow) }
+        // One read, not two: fetching the package separately can straddle a window change and name a
+        // window other than the one described.
+        val source = TreeSource { _ ->
+            rootInActiveWindow?.let {
+                val root = adapt(it) ?: return@TreeSource null
+                ActiveWindow(root, it.packageName?.toString())
+            }
+        }
         while (true) {
             val client = try { srv.accept() } catch (e: Exception) { break }
             try {
