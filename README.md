@@ -106,6 +106,9 @@ A `tree` reply's `package` names the window it actually answered from, which may
 requested `package` if the foreground app changed; it is omitted when the platform cannot name the
 window.
 
+An `action` is refused when that package differs from the one served to this connection's last
+`tree`: the node ref came from that window, and the window underneath may have changed apps.
+
 **Scope note:** glass uses this service for the **tree** and **`set_text`** only. It also
 implements `click` (`ACTION_CLICK`), but glass does **not** route element clicks through it —
 `ACTION_CLICK` is unreliable on Compose (returns success but no-ops), so glass clicks by

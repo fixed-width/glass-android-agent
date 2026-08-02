@@ -43,20 +43,27 @@ class ServerTest {
 
     @Test fun action_dispatches_to_the_sink() {
         var got: Triple<NodeData, String, String?>? = null
-        val resps = run("""{"id":1,"op":"action","ref":1,"action":"set_text","text":"hi"}""" + "\n",
+        val resps = run(
+            """{"id":1,"op":"tree","package":"com.x"}""" + "\n" +
+                """{"id":2,"op":"action","ref":1,"action":"set_text","text":"hi"}""" + "\n",
             source = { ActiveWindow(sampleTree, "com.x") },
-            sink = { node, action, text -> got = Triple(node, action, text) })
-        assertTrue(resps[0].getBoolean("ok"))
+            sink = { node, action, text -> got = Triple(node, action, text) },
+        )
+        assertTrue(resps[1].getBoolean("ok"))
         assertEquals("Save", got!!.first.contentDescription) // ref 1 = the Button
         assertEquals("set_text", got!!.second)
         assertEquals("hi", got!!.third)
     }
 
     @Test fun action_on_bad_ref_errors() {
-        val resps = run("""{"id":1,"op":"action","ref":99,"action":"click"}""" + "\n",
-            source = { ActiveWindow(sampleTree, "com.x") }, sink = { _, _, _ -> })
-        assertTrue(!resps[0].getBoolean("ok"))
-        assertTrue(resps[0].getString("error").contains("ref"))
+        val resps = run(
+            """{"id":1,"op":"tree","package":"com.x"}""" + "\n" +
+                """{"id":2,"op":"action","ref":99,"action":"click"}""" + "\n",
+            source = { ActiveWindow(sampleTree, "com.x") },
+            sink = { _, _, _ -> },
+        )
+        assertTrue(!resps[1].getBoolean("ok"))
+        assertTrue(resps[1].getString("error").contains("ref"))
     }
 
     @Test fun unknown_op_errors() {
@@ -80,5 +87,55 @@ class ServerTest {
             sink = { _, _, _ -> })
         assertTrue(resps[0].getBoolean("ok"))
         assertTrue(!resps[0].has("package"))
+    }
+
+    @Test fun an_action_after_the_window_changed_apps_is_refused() {
+        var acted = false
+        var served = 0
+        val resps = run(
+            """{"id":1,"op":"tree","package":"com.x"}""" + "\n" +
+                """{"id":2,"op":"action","ref":1,"action":"click"}""" + "\n",
+            // The first call serves com.x; by the action the foreground has changed.
+            source = { ActiveWindow(sampleTree, if (served++ == 0) "com.x" else "com.dialog") },
+            sink = { _, _, _ -> acted = true },
+        )
+        assertTrue(!resps[1].getBoolean("ok"))
+        assertTrue(resps[1].getString("error").contains("com.x"))
+        assertTrue(resps[1].getString("error").contains("com.dialog"))
+        assertTrue(!acted, "the sink must not be reached")
+    }
+
+    @Test fun an_action_on_the_same_app_still_actuates() {
+        var acted = false
+        val resps = run(
+            """{"id":1,"op":"tree","package":"com.x"}""" + "\n" +
+                """{"id":2,"op":"action","ref":1,"action":"click"}""" + "\n",
+            source = { ActiveWindow(sampleTree, "com.x") },
+            sink = { _, _, _ -> acted = true },
+        )
+        assertTrue(resps[1].getBoolean("ok"))
+        assertTrue(acted)
+    }
+
+    @Test fun an_action_with_no_preceding_tree_is_refused() {
+        var acted = false
+        val resps = run("""{"id":1,"op":"action","ref":1,"action":"click"}""" + "\n",
+            source = { ActiveWindow(sampleTree, "com.x") },
+            sink = { _, _, _ -> acted = true })
+        assertTrue(!resps[0].getBoolean("ok"))
+        assertTrue(resps[0].getString("error").contains("no tree"))
+        assertTrue(!acted)
+    }
+
+    @Test fun an_action_is_refused_when_the_window_is_unnamed() {
+        var acted = false
+        val resps = run(
+            """{"id":1,"op":"tree","package":"com.x"}""" + "\n" +
+                """{"id":2,"op":"action","ref":1,"action":"click"}""" + "\n",
+            source = { ActiveWindow(sampleTree, null) },
+            sink = { _, _, _ -> acted = true },
+        )
+        assertTrue(!resps[1].getBoolean("ok"))
+        assertTrue(!acted)
     }
 }

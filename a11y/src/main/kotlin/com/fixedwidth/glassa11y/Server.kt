@@ -13,6 +13,10 @@ fun interface TreeSource { fun tree(pkg: String): ActiveWindow? }
 fun interface ActionSink { fun perform(node: NodeData, action: String, text: String?) }
 
 class Server(private val source: TreeSource, private val sink: ActionSink) {
+    /** The package of the window this connection's last `tree` described; null before the first. */
+    private var served: String? = null
+    private var servedAny = false
+
     fun serve(reader: BufferedReader, writer: Writer) {
         writer.write(Protocol.helloLine() + "\n"); writer.flush()
         var line = reader.readLine()
@@ -31,13 +35,25 @@ class Server(private val source: TreeSource, private val sink: ActionSink) {
                 is Request.Tree -> {
                     val win = source.tree(req.pkg)
                         ?: return Response.error(req.id, "no window for package ${req.pkg}")
+                    served = win.pkg
+                    servedAny = true
                     Response.okTree(req.id, treeJson(win.root), win.pkg)
                 }
                 is Request.Action -> {
-                    // package-agnostic re-walk; null when no active window
-                    val root = source.tree("")?.root
-                        ?: return Response.error(req.id, "no active window")
-                    val node = nodeByRef(root, req.ref)
+                    val win = source.tree("") ?: return Response.error(req.id, "no active window")
+                    // A ref names a node in the tree served to this connection; if the window changed
+                    // apps, `matchLive` can still find a same-class, same-rectangle node in the new app.
+                    if (!servedAny) return Response.error(req.id, "no tree has been served on this connection")
+                    if (served == null || win.pkg == null) {
+                        return Response.error(req.id, "the window is unnamed, so the node's app cannot be confirmed")
+                    }
+                    if (served != win.pkg) {
+                        return Response.error(
+                            req.id,
+                            "the node came from $served, but ${win.pkg} is now the active window; re-snapshot before acting",
+                        )
+                    }
+                    val node = nodeByRef(win.root, req.ref)
                         ?: return Response.error(req.id, "no node for ref ${req.ref}")
                     sink.perform(node, req.action, req.text)
                     Response.ok(req.id)
