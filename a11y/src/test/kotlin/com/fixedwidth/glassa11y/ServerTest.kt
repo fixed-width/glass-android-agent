@@ -138,4 +138,37 @@ class ServerTest {
         assertTrue(!resps[1].getBoolean("ok"))
         assertTrue(!acted)
     }
+
+    @Test fun an_action_is_refused_when_only_the_active_window_is_unnamed() {
+        var acted = false
+        var served = 0
+        val resps = run(
+            """{"id":1,"op":"tree","package":"com.x"}""" + "\n" +
+                """{"id":2,"op":"action","ref":1,"action":"click"}""" + "\n",
+            // The tree was served by a named app; by the action, the foreground is unnamed
+            // (e.g. a system dialog) — one side unknown must still refuse.
+            source = { ActiveWindow(sampleTree, if (served++ == 0) "com.x" else null) },
+            sink = { _, _, _ -> acted = true },
+        )
+        assertTrue(!resps[1].getBoolean("ok"))
+        // Pins the refusal to the unnamed-window branch, not the (also-true) mismatch branch below it.
+        assertTrue(resps[1].getString("error").contains("unnamed"))
+        assertTrue(!acted)
+    }
+
+    @Test fun an_action_is_refused_when_only_the_served_tree_was_unnamed() {
+        var acted = false
+        var served = 0
+        val resps = run(
+            """{"id":1,"op":"tree","package":"com.x"}""" + "\n" +
+                """{"id":2,"op":"action","ref":1,"action":"click"}""" + "\n",
+            // The tree was served by an unnamed window; by the action, the foreground is
+            // named — still refused, since the ref cannot be confirmed against that window.
+            source = { ActiveWindow(sampleTree, if (served++ == 0) null else "com.x") },
+            sink = { _, _, _ -> acted = true },
+        )
+        assertTrue(!resps[1].getBoolean("ok"))
+        assertTrue(resps[1].getString("error").contains("unnamed"))
+        assertTrue(!acted)
+    }
 }
