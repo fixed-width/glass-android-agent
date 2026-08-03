@@ -33,8 +33,7 @@ class Server(private val source: TreeSource, private val sink: ActionSink) {
             when (req) {
                 is Request.Ping -> Response.ok(req.id)
                 is Request.Tree -> {
-                    // `source` ignores `req.pkg`; a null result means no window is active at all,
-                    // never that this particular package isn't foreground.
+                    // `source` ignores `req.pkg`; a null result means no window is active at all.
                     val win = source.tree(req.pkg) ?: return Response.error(req.id, "no active window")
                     val resp = Response.okTree(req.id, treeJson(win.root), win.pkg)
                     // Recorded only once the response is actually built, so a throw above (e.g. from

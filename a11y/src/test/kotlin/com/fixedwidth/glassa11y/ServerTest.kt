@@ -122,12 +122,10 @@ class ServerTest {
     }
 
     @Test fun a_later_tree_rearms_the_gate_for_the_new_app() {
-        // Round trip: the served app changes, the stale action refuses, a fresh tree(com.dialog)
-        // re-arms the gate, and its action then actuates. Catches a `Tree`-arm regression that only
-        // ever records the *first* served package (e.g. `if (!servedAny) served = win.pkg`), which
-        // would pin the connection to com.x forever. `run()` executes the whole script before
-        // returning, so a call counter — not a boolean checked mid-list — is what can tell which
-        // action actuated.
+        // Catches a `Tree`-arm regression that only ever records the *first* served package (e.g.
+        // `if (!servedAny) served = win.pkg`), which would pin the connection to com.x forever.
+        // `run()` executes the whole script before returning, so a call counter — not a boolean
+        // checked mid-list — is what can tell which action actuated.
         var actCount = 0
         var call = 0
         val pkgs = listOf("com.x", "com.dialog", "com.dialog", "com.dialog")
