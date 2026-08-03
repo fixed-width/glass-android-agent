@@ -5,6 +5,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import org.json.JSONObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -85,5 +86,23 @@ class NodeDataTest {
         val tree = n("FrameLayout", children = listOf(n("EditText", text = "X"), n("Button")))
         assertEquals("X", nodeByRef(tree, 1)?.text)
         assertEquals(null, nodeByRef(tree, 99))
+    }
+
+    // requireLivePackage is the check liveSink() runs against its single live read before it lets
+    // matchLive touch a node; an AccessibilityNodeInfo can't be instantiated off-device (obtain()
+    // is a stub here), so this is the testable half of that guard — the live read itself is not.
+
+    @Test fun require_live_package_passes_when_they_match() {
+        requireLivePackage("com.x", "com.x") // must not throw
+    }
+
+    @Test fun require_live_package_throws_when_the_live_window_is_a_different_app() {
+        val e = assertFailsWith<IllegalStateException> { requireLivePackage("com.x", "com.dialog") }
+        assertTrue(e.message!!.contains("com.x"))
+        assertTrue(e.message!!.contains("com.dialog"))
+    }
+
+    @Test fun require_live_package_throws_when_the_live_window_is_unnamed() {
+        assertFailsWith<IllegalStateException> { requireLivePackage("com.x", null) }
     }
 }

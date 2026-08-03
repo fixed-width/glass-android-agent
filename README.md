@@ -96,11 +96,21 @@ It listens on `localabstract:glass-a11y` and sends the same `{"hello":{"proto":1
 | `op`     | Required fields                                    | Response fields                       |
 |----------|----------------------------------------------------|---------------------------------------|
 | `ping`   | `id`                                               | `id`, `ok:true`                       |
-| `tree`   | `id`, `package` (serves the active window regardless) | `id`, `ok:true`, `tree` (a node object) |
-| `action` | `id`, `ref`, `action` (`"set_text"` \| `"click"`), `text` (for `set_text`) | `id`, `ok:true` |
+| `tree`   | `id`, `package` (serves the active window regardless) | `id`, `ok:true`, `tree` (a node object), `package`? (the window's actual package) |
+| `action` | `id`, `ref`, `action` (`"set_text"` \| `"click"`), `text` (for `set_text`) — a `tree` must already have been served on this connection | `id`, `ok:true` |
 
 A tree **node** is `{"ref":N, "class":…, "text"?:…, "desc"?:…, "bounds":{"x","y","w","h"}, "editable":bool, "clickable":bool, "enabled":bool, "scrollable":bool, "children"?:[…]}`. `ref`
 is a pre-order index (root = 0) the host uses to address a node in an `action`.
+
+A `tree` reply's `package` names the window it actually answered from, which may differ from the
+requested `package` if the foreground app changed; it is omitted when the platform cannot name the
+window.
+
+An `action` requires a `tree` already served on this connection; without one, it is refused. It is
+refused too when either the served tree's window or the window now active has no package name —
+an unnamed window can't be confirmed to be the one the ref came from — and when the two packages
+differ: the ref names a node from the served window, and the window underneath may have changed
+apps since.
 
 **Scope note:** glass uses this service for the **tree** and **`set_text`** only. It also
 implements `click` (`ACTION_CLICK`), but glass does **not** route element clicks through it —
@@ -113,7 +123,7 @@ coordinate tap on the node's bounds instead.
 → connect
 ← {"hello":{"proto":1}}
 → {"id":1,"op":"tree","package":"com.example.app"}
-← {"id":1,"ok":true,"tree":{"ref":0,"class":"android.widget.FrameLayout","bounds":{...},"children":[...]}}
+← {"id":1,"ok":true,"tree":{"ref":0,"class":"android.widget.FrameLayout","bounds":{...},"children":[...]},"package":"com.example.app"}
 → {"id":2,"op":"action","ref":3,"action":"set_text","text":"hello"}
 ← {"id":2,"ok":true}
 ```

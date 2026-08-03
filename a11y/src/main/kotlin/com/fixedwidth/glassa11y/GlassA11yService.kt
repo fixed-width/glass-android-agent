@@ -28,7 +28,12 @@ class GlassA11yService : AccessibilityService() {
         System.err.println("glass-a11y: listening on localabstract:glass-a11y")
         // Both `tree` and `action` target the current active window; a tree/action pair
         // from the host runs back-to-back against the same window.
-        val source = TreeSource { _ -> adapt(rootInActiveWindow) }
+        // One read, not two: fetching the package separately can straddle a window change and name a
+        // window other than the one described.
+        val source = TreeSource { _ ->
+            // adapt() returns null only for a null argument; `it` is non-null inside this `let`.
+            rootInActiveWindow?.let { ActiveWindow(adapt(it)!!, it.packageName?.toString()) }
+        }
         while (true) {
             val client = try { srv.accept() } catch (e: Exception) { break }
             try {
@@ -44,14 +49,20 @@ class GlassA11yService : AccessibilityService() {
         server = null
     }
 
-    /** ActionSink that re-finds the live node (by class + screen bounds) and performs the action. */
-    private fun liveSink() = ActionSink { node, action, text ->
-        val live = matchLive(rootInActiveWindow, node) ?: error("live node gone")
+    /**
+     * ActionSink that reads the active window once — the same read is checked against `pkg` and
+     * walked by `matchLive` — then re-finds the live node (by class + screen bounds) and performs
+     * the action. Two separate reads would let the foreground change between them, so the check
+     * would pass on stale evidence while the actuation lands in whatever took focus.
+     */
+    private fun liveSink() = ActionSink { node, pkg, action, text ->
+        val root = rootInActiveWindow ?: error("no active window")
+        requireLivePackage(pkg, root.packageName?.toString())
+        val live = matchLive(root, node) ?: error("live node gone")
         performOn(live, action, text)
     }
 
-    private fun matchLive(root: AccessibilityNodeInfo?, want: NodeData): AccessibilityNodeInfo? {
-        if (root == null) return null
+    private fun matchLive(root: AccessibilityNodeInfo, want: NodeData): AccessibilityNodeInfo? {
         val wb = want.bounds
         fun walk(n: AccessibilityNodeInfo): AccessibilityNodeInfo? {
             val r = Rect().also { n.getBoundsInScreen(it) }

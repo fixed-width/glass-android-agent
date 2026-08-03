@@ -27,7 +27,7 @@ class ProtocolTest {
 
     @Test fun serializes_ok_tree_and_error() {
         assertEquals("""{"id":1,"ok":true}""", Protocol.serialize(Response.ok(1)))
-        val tree = Protocol.serialize(Response.okTree(2, """{"ref":0}"""))
+        val tree = Protocol.serialize(Response.okTree(2, """{"ref":0}""", null))
         val o = JSONObject(tree)
         assertEquals(0, o.getJSONObject("tree").getInt("ref"))
         assertTrue(o.getBoolean("ok"))
