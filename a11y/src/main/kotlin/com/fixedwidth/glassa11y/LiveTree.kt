@@ -48,6 +48,15 @@ fun isClickableNode(isClickable: Boolean, actionIds: List<Int>): Boolean =
 fun hintFor(sdkInt: Int, raw: CharSequence?): String? =
     if (sdkInt >= Build.VERSION_CODES.O) raw?.toString()?.ifEmpty { null } else null
 
+/**
+ * Refuse to actuate if `actual` (the package of the window just read, live) differs from `expected`
+ * (the package the ref was gated for). Pure so the check itself is unit-testable off-device — the
+ * live read it guards is not.
+ */
+fun requireLivePackage(expected: String, actual: String?) {
+    check(actual == expected) { "the active window is now $actual, not $expected; refusing to act" }
+}
+
 /** Perform a node action ("click" | "set_text") on a live node; throws on refusal/unknown. */
 fun performOn(node: AccessibilityNodeInfo, action: String, text: String?) {
     when (action) {
