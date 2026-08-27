@@ -14,10 +14,11 @@ class NodeDataTest {
                   editable: Boolean = false, clickable: Boolean = false,
                   checkable: Boolean = false, checked: Boolean = false,
                   resourceId: String? = null, hint: String? = null,
+                  showingHintText: Boolean = false,
                   children: List<NodeData> = emptyList()) =
         NodeData("android.widget.$cls", text, desc,
             Bounds(0, 0, 10, 10), editable, clickable, true, false, checkable, checked,
-            resourceId, hint, children)
+            resourceId, hint, children, showingHintText)
 
     @Test fun maps_node_fields_and_assigns_preorder_refs() {
         val tree = n("FrameLayout", children = listOf(
@@ -59,6 +60,20 @@ class NodeDataTest {
         assertFalse(o.has("hint"))
     }
 
+    @Test fun emits_whether_the_node_is_showing_its_hint_text() {
+        val showing = JSONObject(treeJson(n(
+            "EditText", text = "Search settings", hint = "Search settings",
+            showingHintText = true,
+        )))
+        assertTrue(showing.getBoolean("showing_hint_text"))
+
+        val entered = JSONObject(treeJson(n(
+            "EditText", text = "head-to-head", hint = "Search settings",
+            showingHintText = false,
+        )))
+        assertFalse(entered.getBoolean("showing_hint_text"))
+    }
+
     @Test fun clickable_reflects_action_click_not_just_the_flag() {
         // Compose exposes a button's click via ACTION_CLICK, with isClickable() == false.
         assertTrue(isClickableNode(false, listOf(AccessibilityNodeInfo.ACTION_CLICK)))
@@ -80,6 +95,15 @@ class NodeDataTest {
         assertEquals(null, hintFor(Build.VERSION_CODES.O, null))
         assertEquals(null, hintFor(Build.VERSION_CODES.O, ""))
         assertEquals(null, hintFor(Build.VERSION_CODES.O - 1, null))
+    }
+
+    @Test fun showing_hint_text_is_available_at_or_above_api_26() {
+        assertTrue(showingHintTextFor(Build.VERSION_CODES.O, true))
+        assertFalse(showingHintTextFor(Build.VERSION_CODES.O, false))
+    }
+
+    @Test fun showing_hint_text_is_false_below_api_26() {
+        assertFalse(showingHintTextFor(Build.VERSION_CODES.O - 1, true))
     }
 
     @Test fun finds_node_by_preorder_ref() {

@@ -99,8 +99,12 @@ It listens on `localabstract:glass-a11y` and sends the same `{"hello":{"proto":1
 | `tree`   | `id`, `package` (serves the active window regardless) | `id`, `ok:true`, `tree` (a node object), `package`? (the window's actual package) |
 | `action` | `id`, `ref`, `action` (`"set_text"` \| `"click"`), `text` (for `set_text`) — a `tree` must already have been served on this connection | `id`, `ok:true` |
 
-A tree **node** is `{"ref":N, "class":…, "text"?:…, "desc"?:…, "bounds":{"x","y","w","h"}, "editable":bool, "clickable":bool, "enabled":bool, "scrollable":bool, "children"?:[…]}`. `ref`
-is a pre-order index (root = 0) the host uses to address a node in an `action`.
+A tree **node** is `{"ref":N, "class":…, "text"?:…, "desc"?:…, "bounds":{"x","y","w","h"}, "editable":bool, "clickable":bool, "enabled":bool, "scrollable":bool, "resource_id"?:…, "hint"?:…, "showing_hint_text":bool, "children"?:[…]}`. `ref` is a pre-order index (root = 0) the host uses to address a node in an `action`. `showing_hint_text` carries
+`AccessibilityNodeInfo.isShowingHintText()` on API 26 and newer; it is `false` below API 26.
+
+`showing_hint_text` is an additive protocol-1 field. Older hosts ignore it. A newer host talking to
+an older companion sees the key as absent and preserves the legacy text-as-value mapping rather than
+suppressing text without the platform fact.
 
 A `tree` reply's `package` names the window it actually answered from, which may differ from the
 requested `package` if the foreground app changed; it is omitted when the platform cannot name the
