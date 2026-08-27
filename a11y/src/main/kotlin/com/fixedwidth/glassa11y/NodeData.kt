@@ -24,6 +24,7 @@ data class NodeData(
     val resourceId: String?,
     val hint: String?,
     val children: List<NodeData>,
+    val showingHintText: Boolean = false,
 )
 
 /** Serialize a tree to JSON, assigning a stable pre-order `ref` to each node (root = 0). */
@@ -45,6 +46,7 @@ private fun nodeJson(n: NodeData, next: IntArray): JSONObject {
     o.put("checked", n.checked)
     n.resourceId?.let { o.put("resource_id", it) }
     n.hint?.let { o.put("hint", it) }
+    o.put("showing_hint_text", n.showingHintText)
     if (n.children.isNotEmpty()) {
         val arr = JSONArray()
         n.children.forEach { arr.put(nodeJson(it, next)) }

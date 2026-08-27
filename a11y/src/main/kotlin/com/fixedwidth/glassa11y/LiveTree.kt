@@ -30,6 +30,12 @@ fun adapt(node: AccessibilityNodeInfo?): NodeData? {
             null
         },
         children = kids,
+        // API 24-25 cannot report hint display, so false preserves legacy value mapping.
+        showingHintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            showingHintTextFor(Build.VERSION.SDK_INT, node.isShowingHintText)
+        } else {
+            false
+        },
     )
 }
 
@@ -47,6 +53,10 @@ fun isClickableNode(isClickable: Boolean, actionIds: List<Int>): Boolean =
  */
 fun hintFor(sdkInt: Int, raw: CharSequence?): String? =
     if (sdkInt >= Build.VERSION_CODES.O) raw?.toString()?.ifEmpty { null } else null
+
+/** Return `raw` on API 26+, or false below the platform floor. */
+fun showingHintTextFor(sdkInt: Int, raw: Boolean): Boolean =
+    sdkInt >= Build.VERSION_CODES.O && raw
 
 /**
  * Refuse to actuate if `actual` (the package of the window just read, live) differs from `expected`
