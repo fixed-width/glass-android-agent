@@ -30,8 +30,7 @@ fun adapt(node: AccessibilityNodeInfo?): NodeData? {
             null
         },
         children = kids,
-        // isShowingHintText() is API 26; false below that floor means the host keeps the
-        // legacy value mapping rather than suppressing text without authoritative evidence.
+        // API 24-25 cannot report hint display, so false preserves legacy value mapping.
         showingHintText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             showingHintTextFor(Build.VERSION.SDK_INT, node.isShowingHintText)
         } else {
@@ -55,7 +54,7 @@ fun isClickableNode(isClickable: Boolean, actionIds: List<Int>): Boolean =
 fun hintFor(sdkInt: Int, raw: CharSequence?): String? =
     if (sdkInt >= Build.VERSION_CODES.O) raw?.toString()?.ifEmpty { null } else null
 
-/** Whether node text is the currently displayed hint; the platform fact exists from API 26. */
+/** Return `raw` on API 26+, or false below the platform floor. */
 fun showingHintTextFor(sdkInt: Int, raw: Boolean): Boolean =
     sdkInt >= Build.VERSION_CODES.O && raw
 
