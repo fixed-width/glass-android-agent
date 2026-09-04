@@ -7,7 +7,9 @@ import kotlin.test.assertTrue
 
 class ProtocolTest {
     @Test fun hello_announces_proto() {
-        assertEquals(1, JSONObject(Protocol.helloLine()).getJSONObject("hello").getInt("proto"))
+        val hello = JSONObject(Protocol.helloLine()).getJSONObject("hello")
+        assertEquals(1, hello.getInt("proto"))
+        assertEquals(2, hello.getInt("node_schema"))
     }
 
     @Test fun parses_each_op() {

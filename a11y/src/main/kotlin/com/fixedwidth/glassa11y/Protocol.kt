@@ -24,8 +24,12 @@ data class Response(
 
 object Protocol {
     const val PROTO = 1
+    const val NODE_SCHEMA = 2
 
-    fun helloLine(): String = JSONObject().put("hello", JSONObject().put("proto", PROTO)).toString()
+    fun helloLine(): String = JSONObject().put(
+        "hello",
+        JSONObject().put("proto", PROTO).put("node_schema", NODE_SCHEMA),
+    ).toString()
 
     fun parse(line: String): Request {
         return try {
