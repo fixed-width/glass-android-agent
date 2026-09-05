@@ -12,12 +12,15 @@ import kotlin.test.assertTrue
 class NodeDataTest {
     private fun n(cls: String, text: String? = null, desc: String? = null,
                   editable: Boolean = false, clickable: Boolean = false,
+                  visible: Boolean = false, focused: Boolean = false,
+                  focusable: Boolean = false, password: Boolean = false,
                   checkable: Boolean = false, checked: Boolean = false,
                   resourceId: String? = null, hint: String? = null,
                   showingHintText: Boolean = false,
                   children: List<NodeData> = emptyList()) =
         NodeData("android.widget.$cls", text, desc,
-            Bounds(0, 0, 10, 10), editable, clickable, true, false, checkable, checked,
+            Bounds(0, 0, 10, 10), visible, focused, focusable, password,
+            editable, clickable, true, false, checkable, checked,
             resourceId, hint, children, showingHintText)
 
     @Test fun maps_node_fields_and_assigns_preorder_refs() {
@@ -35,6 +38,26 @@ class NodeDataTest {
         assertEquals("android.widget.Button", kids.getJSONObject(1).getString("class"))
         assertTrue(kids.getJSONObject(1).getBoolean("clickable"))
         assertEquals(10, kids.getJSONObject(1).getJSONObject("bounds").getInt("w"))
+        for (field in listOf("visible", "focused", "focusable", "password"))
+            assertFalse(kids.getJSONObject(0).getBoolean(field), "$field must be explicit")
+    }
+
+    @Test fun emits_each_schema_two_state_without_substitution() {
+        val o = JSONObject(treeJson(n(
+            "EditText", visible = true, focused = true, focusable = true, password = true,
+        )))
+        assertTrue(o.getBoolean("visible"))
+        assertTrue(o.getBoolean("focused"))
+        assertTrue(o.getBoolean("focusable"))
+        assertTrue(o.getBoolean("password"))
+    }
+
+    @Test fun password_text_never_crosses_the_protocol_boundary() {
+        val wire = treeJson(n("EditText", text = "PASSWORD_SENTINEL", editable = true, password = true))
+        val o = JSONObject(wire)
+        assertTrue(o.getBoolean("password"))
+        assertFalse(o.has("text"))
+        assertFalse(wire.contains("PASSWORD_SENTINEL"))
     }
 
     @Test fun emits_checkable_and_checked() {

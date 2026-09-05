@@ -91,7 +91,11 @@ editable fields directly. Because an `AccessibilityService` is system-bound, it 
 `settings put secure enabled_accessibility_services …`) and restores the device's prior state
 on teardown.
 
-It listens on `localabstract:glass-a11y` and sends the same `{"hello":{"proto":1}}` banner.
+It listens on `localabstract:glass-a11y` and sends
+`{"hello":{"proto":1,"node_schema":2}}`. `node_schema:2` says every node carries the state
+booleans listed below. It is additive within protocol 1, so older hosts ignore the capability.
+Hosts that require schema 2 must reject a missing, malformed, or different value before requesting
+a tree; schema 1 cannot identify password text safely and cannot confirm focus.
 
 | `op`     | Required fields                                    | Response fields                       |
 |----------|----------------------------------------------------|---------------------------------------|
@@ -99,7 +103,7 @@ It listens on `localabstract:glass-a11y` and sends the same `{"hello":{"proto":1
 | `tree`   | `id`, `package` (serves the active window regardless) | `id`, `ok:true`, `tree` (a node object), `package`? (the window's actual package) |
 | `action` | `id`, `ref`, `action` (`"set_text"` \| `"click"`), `text` (for `set_text`) — a `tree` must already have been served on this connection | `id`, `ok:true` |
 
-A tree **node** is `{"ref":N, "class":…, "text"?:…, "desc"?:…, "bounds":{"x","y","w","h"}, "editable":bool, "clickable":bool, "enabled":bool, "scrollable":bool, "resource_id"?:…, "hint"?:…, "showing_hint_text":bool, "children"?:[…]}`. `ref` is a pre-order index (root = 0) the host uses to address a node in an `action`. `showing_hint_text` carries
+A tree **node** is `{"ref":N, "class":…, "text"?:…, "desc"?:…, "bounds":{"x","y","w","h"}, "visible":bool, "focused":bool, "focusable":bool, "password":bool, "editable":bool, "clickable":bool, "enabled":bool, "scrollable":bool, "checkable":bool, "checked":bool, "resource_id"?:…, "hint"?:…, "showing_hint_text":bool, "children"?:[…]}`. `ref` is a pre-order index (root = 0) the host uses to address a node in an `action`. Password nodes omit `text` even for older protocol-1 hosts that do not understand `password`. `showing_hint_text` carries
 `AccessibilityNodeInfo.isShowingHintText()` on API 26 and newer; it is `false` below API 26.
 
 `showing_hint_text` is an additive protocol-1 field. Older hosts ignore it. A newer host talking to

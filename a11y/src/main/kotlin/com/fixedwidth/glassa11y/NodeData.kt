@@ -15,6 +15,10 @@ data class NodeData(
     val text: String?,
     val contentDescription: String?,
     val bounds: Bounds,
+    val visible: Boolean,
+    val focused: Boolean,
+    val focusable: Boolean,
+    val password: Boolean,
     val editable: Boolean,
     val clickable: Boolean,
     val enabled: Boolean,
@@ -34,11 +38,17 @@ private fun nodeJson(n: NodeData, next: IntArray): JSONObject {
     val o = JSONObject()
     o.put("ref", next[0]); next[0] += 1
     o.put("class", n.className)
-    n.text?.let { o.put("text", it) }
+    // Keep protected text off the wire. Older protocol-1 hosts ignore `password`, so the flag
+    // alone cannot stop them from treating the text as an ordinary editable value.
+    if (!n.password) n.text?.let { o.put("text", it) }
     n.contentDescription?.let { o.put("desc", it) }
     o.put("bounds", JSONObject().put("x", n.bounds.x).put("y", n.bounds.y)
         .put("w", n.bounds.w).put("h", n.bounds.h))
     o.put("editable", n.editable)
+    o.put("visible", n.visible)
+    o.put("focused", n.focused)
+    o.put("focusable", n.focusable)
+    o.put("password", n.password)
     o.put("clickable", n.clickable)
     o.put("enabled", n.enabled)
     o.put("scrollable", n.scrollable)
