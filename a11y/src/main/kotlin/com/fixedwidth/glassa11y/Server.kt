@@ -4,15 +4,22 @@ import java.io.BufferedReader
 import java.io.Writer
 
 /** The active window's node tree and the package it belongs to; null when there is no active window. */
-data class ActiveWindow(val root: NodeData, val pkg: String?)
+data class ActiveWindow(val root: NodeData, val pkg: String?, val pointerWindow: PointerWindow? = null)
 
 /** Resolve the active window, or null if none is present. */
 fun interface TreeSource { fun tree(pkg: String): ActiveWindow? }
 
+/** Read the tree and window evidence from the same active root, without injecting input. */
+fun interface PointerTreeSource { fun tree(point: ScreenPoint): ActiveWindow? }
+
 /** Perform an action ("click" | "set_text") on a resolved node, in a window belonging to `pkg`; throw on failure. */
 fun interface ActionSink { fun perform(node: NodeData, pkg: String, action: String, text: String?) }
 
-class Server(private val source: TreeSource, private val sink: ActionSink) {
+class Server(
+    private val source: TreeSource,
+    private val sink: ActionSink,
+    private val pointerSource: PointerTreeSource? = null,
+) {
     /** The package of the window this connection's last `tree` described; null before the first. */
     private var served: String? = null
     private var servedAny = false
@@ -34,8 +41,11 @@ class Server(private val source: TreeSource, private val sink: ActionSink) {
                 is Request.Ping -> Response.ok(req.id)
                 is Request.Tree -> {
                     // `source` ignores `req.pkg`; a null result means no window is active at all.
-                    val win = source.tree(req.pkg) ?: return Response.error(req.id, "no active window")
+                    val win = (if (req.point != null && pointerSource != null) {
+                        pointerSource.tree(req.point)
+                    } else source.tree(req.pkg)) ?: return Response.error(req.id, "no active window")
                     val resp = Response.okTree(req.id, treeJson(win.root), win.pkg)
+                        .copy(pointerWindow = if (req.point != null) win.pointerWindow else null)
                     // Recorded only once the response is actually built, so a throw above (e.g. from
                     // treeJson) can't arm the connection for a tree the caller never received.
                     served = win.pkg

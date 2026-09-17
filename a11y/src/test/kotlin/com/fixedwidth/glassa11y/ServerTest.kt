@@ -201,4 +201,41 @@ class ServerTest {
         assertTrue(error.contains("will not fix"), "this side is not recoverable by retrying")
         assertTrue(!acted)
     }
+
+    @Test fun point_read_pairs_one_live_tree_with_evidence_and_never_acts() {
+        var reads = 0
+        var actions = 0
+        val evidence = PointerWindow(ScreenPoint(12, 34), 10, 0, 20)
+        val server = Server(
+            source = { error("ordinary tree read must not replace the point tree") },
+            sink = { _, _, _, _ -> actions++ },
+            pointerSource = { point ->
+                reads++
+                assertEquals(evidence.point, point)
+                ActiveWindow(sampleTree, "com.live", evidence)
+            },
+        )
+        val response = server.handle(Request.Tree(1, "com.asked", evidence.point))
+        assertTrue(response.ok)
+        assertEquals("com.live", response.pkg)
+        assertEquals(evidence, response.pointerWindow)
+        assertEquals(1, reads)
+        assertEquals(0, actions)
+    }
+
+    @Test fun unsupported_point_read_returns_the_tree_without_evidence() {
+        val server = Server(source = { ActiveWindow(sampleTree, "com.x") },
+            sink = { _, _, _, _ -> error("must not act") })
+        val response = server.handle(Request.Tree(1, "com.x", ScreenPoint(1, 2)))
+        assertTrue(response.ok)
+        assertEquals(null, response.pointerWindow)
+    }
+
+    @Test fun missing_point_tree_does_not_fall_back_to_another_read() {
+        val server = Server(source = { error("no fallback") },
+            sink = { _, _, _, _ -> error("must not act") }, pointerSource = { null })
+        val response = server.handle(Request.Tree(1, "com.x", ScreenPoint(1, 2)))
+        assertTrue(!response.ok)
+        assertEquals("no active window", response.error)
+    }
 }

@@ -2,9 +2,12 @@ package com.fixedwidth.glassa11y
 
 import android.accessibilityservice.AccessibilityService
 import android.graphics.Rect
+import android.graphics.Region
 import android.net.LocalServerSocket
+import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import kotlin.concurrent.thread
 
 class GlassA11yService : AccessibilityService() {
@@ -37,7 +40,7 @@ class GlassA11yService : AccessibilityService() {
         while (true) {
             val client = try { srv.accept() } catch (e: Exception) { break }
             try {
-                Server(source, liveSink()).serve(
+                Server(source, liveSink(), PointerTreeSource(::pointerTree)).serve(
                     client.inputStream.bufferedReader(), client.outputStream.bufferedWriter())
             } catch (e: Exception) {
                 System.err.println("glass-a11y: connection error: ${e.message}")
@@ -47,6 +50,35 @@ class GlassA11yService : AccessibilityService() {
         }
         runCatching { srv.close() }
         server = null
+    }
+
+    private fun pointerTree(point: ScreenPoint): ActiveWindow? {
+        val fresh = Build.VERSION.SDK_INT >= 33 && clearCache()
+        val root = rootInActiveWindow ?: return null
+        val packageName = root.packageName?.toString()
+        val targetId = root.windowId
+        var evidence: PointerWindow? = null
+        if (Build.VERSION.SDK_INT >= 33 && fresh && root.refresh()) {
+            val atPoint = windows.map { window ->
+                val region = Region().also { window.getRegionInScreen(it) }
+                // Focused untouchable windows and some system windows can still be published.
+                val eligible = !window.isFocused && window.type in listOf(
+                    AccessibilityWindowInfo.TYPE_APPLICATION,
+                    AccessibilityWindowInfo.TYPE_INPUT_METHOD,
+                    AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY,
+                )
+                WindowAtPoint(window.id, window.displayId, window.layer,
+                    region.contains(point.x, point.y), eligible)
+            }
+            val targetWindow = atPoint.singleOrNull { it.id == targetId }
+            val current = rootInActiveWindow
+            if (targetWindow != null && current?.windowId == targetId &&
+                current.packageName?.toString() == packageName && root.refresh()) {
+                evidence = PointerWindow(point, targetId, targetWindow.displayId,
+                    coveringWindow(targetId, atPoint))
+            }
+        }
+        return ActiveWindow(adapt(root)!!, packageName, evidence)
     }
 
     /**
