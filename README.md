@@ -100,7 +100,7 @@ a tree; schema 1 cannot identify password text safely and cannot confirm focus.
 | `op`     | Required fields                                    | Response fields                       |
 |----------|----------------------------------------------------|---------------------------------------|
 | `ping`   | `id`                                               | `id`, `ok:true`                       |
-| `tree`   | `id`, `package` (serves the active window regardless) | `id`, `ok:true`, `tree` (a node object), `package`? (the window's actual package) |
+| `tree`   | `id`, `package` (serves the active window regardless), optional `pointer_point:{x,y}` in screen pixels | `id`, `ok:true`, `tree` (a node object), `package`? (the window's actual package), `pointer_window`? |
 | `action` | `id`, `ref`, `action` (`"set_text"` \| `"click"`), `text` (for `set_text`) — a `tree` must already have been served on this connection | `id`, `ok:true` |
 
 A tree **node** is `{"ref":N, "class":…, "text"?:…, "desc"?:…, "bounds":{"x","y","w","h"}, "visible":bool, "focused":bool, "focusable":bool, "password":bool, "editable":bool, "clickable":bool, "enabled":bool, "scrollable":bool, "checkable":bool, "checked":bool, "resource_id"?:…, "hint"?:…, "showing_hint_text":bool, "children"?:[…]}`. `ref` is a pre-order index (root = 0) the host uses to address a node in an `action`. Password nodes omit `text` even for older protocol-1 hosts that do not understand `password`. `showing_hint_text` carries
@@ -113,6 +113,27 @@ suppressing text without the platform fact.
 A `tree` reply's `package` names the window it actually answered from, which may differ from the
 requested `package` if the foreground app changed; it is omitted when the platform cannot name the
 window.
+
+When `pointer_point` is supplied, Android 13 (API 33) and newer can also return window-occlusion
+evidence paired with that tree:
+
+```json
+{"pointer_window":{"version":1,"x":420,"y":714,"window_id":10,"display_id":0,"occluding_window_id":20}}
+```
+
+The service clears its accessibility cache, reads the active root and window stack, and confirms
+the active window before answering. A cover must have a higher layer on the same default display
+and a touchable region containing the requested point. Only non-focused application, input-method,
+and accessibility-overlay windows are classified; focused untouchable windows and special system
+windows can appear in accessibility without intercepting the point.
+
+`occluding_window_id` is omitted when no cover is established. This is **negative evidence only**:
+neither a missing cover nor an absent `pointer_window` proves that an individual view is unobstructed.
+Drawing order, visibility, and clickability do not establish touch routing within a window. Older
+Android versions, unavailable fresh window data, and an active-window change omit the evidence.
+The read never injects input. Coordinates must be signed 32-bit integers; malformed points are
+rejected. This extension is additive to protocol 1 / node schema 2: old hosts omit the request field,
+and old companions ignore it and return an ordinary tree.
 
 An `action` requires a `tree` already served on this connection; without one, it is refused. It is
 refused too when either the served tree's window or the window now active has no package name —
